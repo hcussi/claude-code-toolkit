@@ -26,6 +26,20 @@ everywhere.
 
 None yet.
 
+## Repo tooling
+
+Maintenance automations for *this* repo live under `.claude/` (committed, so
+they apply to anyone who clones it). They are separate from the published items
+above:
+
+- **`new-agent` skill**: `/new-agent` scaffolds `agents/<name>.md`, its
+  `docs/` mirror, and the README row in one pass.
+- **`toolkit-linter` agent**: on-demand review of frontmatter, docs, and
+  README consistency.
+- **Hooks**: a pre-commit hook runs `.claude/scripts/lint-toolkit.sh` (valid
+  frontmatter, doc mirror, README row, single-root `.gitignore`) and blocks the
+  commit on failure; another blocks any non-root `.gitignore`.
+
 ## Contributing
 
 Add one agent per file under `agents/` (or one skill per directory under
