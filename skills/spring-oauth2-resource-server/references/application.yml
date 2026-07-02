@@ -1,0 +1,24 @@
+# OAuth2 resource-server config. Merge these keys into the target project's
+# application.yml (or translate to application.properties).
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # The issuer's base URL. Spring fetches the JWKS from here to validate
+          # token signatures, and checks the `iss` claim and expiry. Works with
+          # any OIDC provider: Keycloak, Auth0, Okta, Cognito, Entra ID, etc.
+          # Examples:
+          #   Keycloak: https://auth.example.com/realms/<realm>
+          #   Auth0:    https://<tenant>.auth0.com/
+          #   Okta:     https://<org>.okta.com/oauth2/<server>
+          issuer-uri: ${OAUTH2_ISSUER_URI:https://issuer.example.com/realms/myrealm}
+
+app:
+  security:
+    jwt:
+      # Required value in the access token's `aud` claim (see AudienceValidator).
+      audience: ${OAUTH2_AUDIENCE:my-api}
+    cors:
+      # Comma-separated browser origins allowed to call this API.
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}

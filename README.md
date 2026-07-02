@@ -24,7 +24,9 @@ everywhere.
 
 ## Skills
 
-None yet.
+| Skill | Description | Docs |
+| --- | --- | --- |
+| `spring-oauth2-resource-server` | Configure a Spring Boot app as an OAuth2/OIDC JWT resource server (any provider). | [docs](docs/skills/spring-oauth2-resource-server.md) |
 
 ## Repo tooling
 
