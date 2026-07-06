@@ -21,12 +21,14 @@ everywhere.
 | Agent | Description | Docs |
 | --- | --- | --- |
 | `security-reviewer` | Read-only OAuth2/OIDC security audit for any web stack. | [docs](docs/agents/security-reviewer.md) |
+| `ui-design-reviewer` | Read-only UI review of a running app via the Playwright MCP, against Material-informed minimalism. | [docs](docs/agents/ui-design-reviewer.md) |
 
 ## Skills
 
 | Skill | Description | Docs |
 | --- | --- | --- |
 | `spring-oauth2-resource-server` | Configure a Spring Boot app as an OAuth2/OIDC JWT resource server (any provider). | [docs](docs/skills/spring-oauth2-resource-server.md) |
+| `ui-iterate` | Human-in-the-loop UI redesign loop on a running app (Playwright MCP + ui-design-reviewer). | [docs](docs/skills/ui-iterate.md) |
 
 ## Repo tooling
 
