@@ -1,6 +1,6 @@
 ---
 name: ui-iterate
-description: Drive an interactive UI redesign loop on a running web app: render it via the Playwright MCP, critique it (using the ui-design-reviewer agent) against Material-informed minimalism, apply edits, re-render, and repeat according to the user's feedback until they approve. Use when iterating on a screen's look and feel with a human in the loop. Writes code, so it is user-invoked only.
+description: "Drive an interactive UI redesign loop on a running web app: render it via the Playwright MCP, critique it (using the ui-design-reviewer agent) against Material-informed minimalism, apply edits, re-render, and repeat according to the user's feedback until they approve. Use when iterating on a screen's look and feel with a human in the loop. Writes code, so it is user-invoked only."
 disable-model-invocation: true
 ---
 

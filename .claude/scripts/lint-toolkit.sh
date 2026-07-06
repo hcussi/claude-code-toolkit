@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Validate claude-code-toolkit invariants. Deterministic checks shared by the
 # pre-commit hook and the toolkit-linter agent:
-#   * every published agent/skill has valid frontmatter (name, description)
+#   * every published agent/skill has valid frontmatter (name, description),
+#     with no unquoted value that would break YAML parsing
 #   * the frontmatter name matches the file/directory name
 #   * a mirrored doc exists under docs/
 #   * README.md has a table row linking to that doc
@@ -24,6 +25,25 @@ frontmatter_value() {
   ' "$1"
 }
 
+# Print the key of any top-level frontmatter line whose unquoted value contains a
+# colon followed by a space or end of line. YAML reads that as a nested mapping
+# and fails to parse (as GitHub's frontmatter renderer does). Quoting the value
+# fixes it. URLs are safe because "://" is a colon followed by "/", not a space.
+frontmatter_yaml_hazards() {
+  awk '
+    NR==1 && $0=="---" { infm=1; next }
+    infm && $0=="---" { exit }
+    infm && /^[A-Za-z0-9_-]+:/ {
+      key=$0; sub(/:.*/,"",key)
+      val=$0; sub(/^[A-Za-z0-9_-]+:[ \t]*/,"",val)
+      if (val=="") next
+      c=substr(val,1,1)
+      if (c=="\"" || c=="\047" || c=="[" || c=="{" || c=="|" || c==">") next
+      if (val ~ /:([ \t]|$)/) print key
+    }
+  ' "$1"
+}
+
 # check_item <file> <expected-name> <doc-path>
 check_item() {
   local file="$1" expected="$2" doc="$3" name desc
@@ -38,6 +58,9 @@ check_item() {
   if [[ ! -f README.md ]] || ! grep -q "$doc" README.md; then
     errors+=("$file: no README row linking to $doc")
   fi
+  while IFS= read -r badkey; do
+    [[ -n "$badkey" ]] && errors+=("$file: frontmatter '$badkey' has an unquoted value containing ': '; wrap the value in quotes (breaks YAML parsing)")
+  done < <(frontmatter_yaml_hazards "$file")
 }
 
 # Agents: agents/<name>.md -> docs/agents/<name>.md
