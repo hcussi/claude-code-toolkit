@@ -22,7 +22,7 @@ never treat a `.claude/` item as a published product.
 
 ```
 agents/<name>.md               # published subagent definition (frontmatter + prompt)
-skills/<name>/SKILL.md          # published skill (may bundle references/ files)
+skills/<name>/SKILL.md          # published skill (may bundle references/ and scripts/ files)
 docs/agents/<name>.md           # one doc per agent, mirroring agents/
 docs/skills/<name>.md           # one doc per skill, mirroring skills/
 README.md                       # index; Agents and Skills tables link to docs
