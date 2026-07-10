@@ -3,9 +3,9 @@
 A user-invoked skill that **turns a Markdown file's diagrams into image files**
 and rewrites each block, in place, as a Markdown image reference. Point it at a
 document and every diagram becomes a
-`![Diagram N](<md-stem>-diagrams/diagram-N.png)` line backed by a real image, so
-the doc renders in viewers that do not understand mermaid (many editors, PDF and
-print, some static-site and blog engines).
+`![<descriptive alt>](<md-stem>-diagrams/diagram-N.png)` line backed by a real
+image, so the doc renders in viewers that do not understand mermaid (many
+editors, PDF and print, some static-site and blog engines).
 
 It handles two sources:
 
@@ -29,13 +29,25 @@ Given one argument (the path to a Markdown file), the skill:
    ` ```mermaid ` block (previewing it first via the script's `--snippet` mode)
    and rewrites that fence in the source.
 3. Runs a bundled, standard-library Python script that renders every
-   ` ```mermaid ` block (native plus translated) to an image in a sibling
-   `<md-stem>-diagrams/` folder (`diagram-1`, `diagram-2`, ...) and replaces each
-   fenced block, in place, with a relative-path image reference.
+   ` ```mermaid ` block (native plus translated) to a **PNG** in a sibling
+   `<md-stem>-diagrams/` folder (`diagram-1.png`, `diagram-2.png`, ...) and
+   replaces each fenced block, in place, with a relative-path image reference.
 
-Re-running is safe: once the fences are replaced by images there is nothing left
-to convert. Plain code fences that are *not* diagrams (code, JSON, config,
-console output) are left untouched.
+The image reference gets **descriptive alt text**: the model adds a `%% alt:`
+comment inside each mermaid block (mermaid ignores `%%` comments, so the render
+is unaffected), and the script uses it as the alt text, falling back to
+`Diagram N` if absent.
+
+All rendering goes through the script; the skill never renders by hand. The
+bundled script is the **only** renderer: if it cannot render (no `mmdc` and no
+network to mermaid.ink) the skill stops and reports, rather than substituting a
+browser screenshot, a local HTTP server, SVG-to-PNG rasterization, or any other
+workaround. Output is deterministic and side-effect-free: **PNG only**, named
+`diagram-N.png` in document order, overwritten in place on re-run. It never emits
+`.svg`, saves `.mmd` source, writes a `mermaid-config.json`, or invents
+"semantic" filenames or folders. Re-running is safe: once the fences are replaced
+by images there is nothing left to convert. Plain code fences that are *not*
+diagrams (code, JSON, config, console output) are left untouched.
 
 ## Rendering backends
 
@@ -52,7 +64,6 @@ Selected with the script's `--renderer` flag (default `auto`):
 The script accepts a few flags beyond the required Markdown path:
 
 - `--renderer auto|mmdc|ink` (default `auto`)
-- `--format png|svg` (default `png`)
 - `--theme <name>` (mermaid theme, default `default`)
 - `--out <dir>` (output folder; default `<md-stem>-diagrams` next to the file)
 - `--background <color>` (image background: `white`, `#ffffff`, or

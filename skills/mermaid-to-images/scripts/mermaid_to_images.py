@@ -5,7 +5,12 @@ rewrite the fence as a Markdown image reference.
 For each mermaid block the script writes an image into a sibling folder
 (default: "<md-stem>-diagrams/") and replaces the fenced block in place with:
 
-    ![Diagram N](<md-stem>-diagrams/diagram-N.png)
+    ![<alt>](<md-stem>-diagrams/diagram-N.png)
+
+The alt text comes from an optional "%% alt: <text>" comment inside the block
+(mermaid ignores "%%" comments, so the diagram is unaffected); without one it
+falls back to "Diagram N". Output is always PNG named diagram-N; the script never
+emits .svg, .mmd, or config files.
 
 Rendering backends (choose with --renderer):
   * mmdc  - the local mermaid-cli binary (offline, no network). Requires
@@ -49,9 +54,52 @@ FENCE_RE = re.compile(
     re.DOTALL | re.MULTILINE,
 )
 
+# An optional "%% alt: ..." mermaid comment inside a block supplies the image's
+# alt text. Mermaid ignores "%%" comment lines when rendering, so the diagram is
+# unaffected; the script reads it to make the replacement's alt text descriptive
+# instead of a generic "Diagram N". Authoring the alt text in the source keeps
+# the whole conversion deterministic.
+ALT_RE = re.compile(r"^[ \t]*%%[ \t]*alt:[ \t]*(?P<alt>.+?)[ \t]*$", re.IGNORECASE | re.MULTILINE)
+
+
+def extract_alt(code: str) -> str | None:
+    """Return the alt text from a '%% alt: ...' comment in the block, if present.
+
+    The result is sanitized for use inside Markdown image alt text: newlines are
+    collapsed and ']' (which would close the alt) is neutralized.
+    """
+    match = ALT_RE.search(code)
+    if not match:
+        return None
+    alt = " ".join(match.group("alt").split()).replace("]", ")")
+    return alt or None
+
 
 def have_mmdc() -> bool:
     return shutil.which("mmdc") is not None
+
+
+def render_failure_hint(renderer: str) -> str:
+    """Actionable remediation printed when rendering fails.
+
+    The point is to make *stopping and fixing the environment* the obvious next
+    step, so a caller is not tempted to invent an alternative renderer.
+    """
+    common = (
+        "\nThis script is the ONLY supported way to produce the images. Do NOT\n"
+        "substitute another renderer: no browser/Playwright screenshots, no local\n"
+        "HTTP server, no SVG-to-PNG rasterization, no hand-drawn images. Fix the\n"
+        "environment (see above) and re-run, or stop and report this to the user."
+    )
+    if renderer == "ink":
+        return (
+            "The mermaid.ink renderer needs network access to https://mermaid.ink.\n"
+            "Do ONE of these, then re-run:\n"
+            "  - enable outbound network for this command, or\n"
+            "  - install mermaid-cli for offline rendering, then re-run (auto-used):\n"
+            "      npm install -g @mermaid-js/mermaid-cli" + common
+        )
+    return "The mermaid-cli (mmdc) renderer failed; see the error above." + common
 
 
 def render_with_mmdc(code: str, out_path: Path, theme: str, background: str) -> None:
@@ -201,7 +249,10 @@ def main() -> int:
         try:
             render(code, out_path)
         except Exception as err:  # noqa: BLE001 - surface any backend failure clearly
-            print(f"error rendering snippet: {err}", file=sys.stderr)
+            print(
+                f"error rendering snippet: {err}\n\n{render_failure_hint(renderer)}",
+                file=sys.stderr,
+            )
             return 1
         print(f"Rendered snippet with '{renderer}' -> {out_path}")
         return 0
@@ -236,11 +287,15 @@ def main() -> int:
         try:
             render(code, img_path)
         except Exception as err:  # noqa: BLE001 - surface any backend failure clearly
-            print(f"error rendering block {i}: {err}", file=sys.stderr)
+            print(
+                f"error rendering block {i}: {err}\n\n{render_failure_hint(renderer)}",
+                file=sys.stderr,
+            )
             return 1
         rel = img_path.relative_to(md_path.parent).as_posix()
-        replacements.append((match.start(), match.end(), f"{indent}![Diagram {i}]({rel})"))
-        print(f"  block {i} -> {img_path}")
+        alt = extract_alt(code) or f"Diagram {i}"
+        replacements.append((match.start(), match.end(), f"{indent}![{alt}]({rel})"))
+        print(f"  block {i} -> {img_path}  (alt: {alt!r})")
 
     new_parts: list[str] = []
     cursor = 0

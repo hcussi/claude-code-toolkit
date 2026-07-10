@@ -7,11 +7,35 @@ argument-hint: <path-to-markdown-file>
 
 # mermaid-to-images
 
+> **Non-negotiable rules. Read these first; they override any instinct to be clever.**
+>
+> 1. **The bundled script is the ONLY renderer.** Every image is produced by
+>    running `scripts/mermaid_to_images.py`. You MUST NOT render diagrams any
+>    other way. Specifically forbidden: a headless browser or Playwright
+>    screenshot, a local HTTP server (`http.server`), converting SVG to PNG
+>    yourself, `@1x`/`@2x` intermediates, or drawing/editing an image by hand.
+> 2. **If the script cannot render, STOP and report to the user.** A failure
+>    (no `mmdc`, no network to mermaid.ink) is a hard stop, not a problem to route
+>    around. Relay the script's error and its remediation; do not invent a
+>    fallback renderer. Producing the image by other means is a failure, not a
+>    save.
+> 3. **Do not choose output names, formats, or folders.** The output is exactly
+>    `diagram-N.png` inside `<md-stem>-diagrams/`. Never rename to something
+>    "semantic" (e.g. `assets/big-picture.png`), never emit `.svg`, never save
+>    `.mmd` source, never write a `mermaid-config.json`.
+> 4. **Your only edits to the doc** are: (a) turning an ASCII diagram fence into a
+>    ` ```mermaid ` fence (with a `%% alt:` comment), and (b) running the script,
+>    which does the fence-to-image rewrite. Nothing else.
+>
+> If any rule pushes you toward more work, you are misreading it: the goal is a
+> boring, identical result every run. When blocked, stopping is the correct
+> outcome.
+
 Turn the diagrams in a Markdown file into image files and replace each block, in
 place, with a Markdown image reference such as
-`![Diagram 1](article-diagrams/diagram-1.png)`. Images land in a sibling folder
-named `<md-stem>-diagrams/` next to the document. Two kinds of source are
-handled:
+`![A browser calls the server tier ...](article-diagrams/diagram-1.png)`. Images
+land in a sibling folder named `<md-stem>-diagrams/` next to the document. Two
+kinds of source are handled:
 
 - **` ```mermaid ` fenced blocks** — rendered directly by the bundled script.
 - **ASCII diagrams in plain fences** (hand-drawn sequence, flow, or box art) —
@@ -19,11 +43,28 @@ handled:
   renders it. This step is model work: ASCII art is not machine-parseable, and
   telling a real diagram from ordinary text is a judgment call.
 
-The rendering itself is a bundled, deterministic script
-(`scripts/mermaid_to_images.py`, standard library only), so parsing and rewriting
-of ` ```mermaid ` blocks do not depend on the model guessing offsets. The script
-also has a `--snippet OUT` preview mode (reads one mermaid diagram from stdin,
-renders it to `OUT`) for checking a translation before writing it into the doc.
+## Do the rendering with the script (do not improvise)
+
+All rendering and rewriting is done by the bundled, deterministic script
+(`scripts/mermaid_to_images.py`, standard library only). **Always run it.** Your
+job is to author mermaid (for ASCII diagrams) and to run the script; it is not to
+render diagrams by hand.
+
+This keeps every run identical and predictable:
+
+- **Never** call `mmdc` or `mermaid.ink` yourself, hand-encode a URL, or write the
+  image reference by hand. The script owns extraction, rendering, and the rewrite.
+- The only outputs are `diagram-N.png` files. **Do not** produce `.svg`, save
+  `.mmd` source, or write a `mermaid-config.json` or any other side artifact.
+- Output is **PNG only** (the script default). Do not switch to SVG.
+- Filenames are `diagram-1.png`, `diagram-2.png`, ... in document order, not
+  semantic names. Re-running overwrites them in place rather than accumulating.
+- Alt text is descriptive, sourced from a `%% alt:` comment you put in the block
+  (see "Translating ASCII diagrams"); the script applies it deterministically.
+
+The script also has a `--snippet OUT` preview mode (reads one mermaid diagram from
+stdin, renders it to `OUT`) for checking a translation before writing it into the
+doc. Previews go to a scratch path, never into the document's diagram folder.
 
 ## Argument
 
@@ -41,8 +82,12 @@ Two backends, selected by the script's `--renderer` flag (default `auto`):
 - **`ink`** (mermaid.ink): the hosted renderer the user referenced; needs
   network access. `auto` falls back to this when `mmdc` is absent.
 
-Prefer `mmdc` when it is installed. If neither `mmdc` nor network access is
-available, tell the user rather than producing broken images.
+Prefer `mmdc` when it is installed. **If neither `mmdc` nor network access is
+available, the script will fail: that is a hard stop.** Report the script's error
+and remediation (install `mmdc`, or enable network for the command) and wait for
+the user. Do not reach for a browser, a local server, or any other renderer to
+get around it. A missing renderer is the user's to resolve, not yours to
+engineer around.
 
 ## Steps
 
@@ -70,13 +115,33 @@ available, tell the user rather than producing broken images.
    ```
 
    This converts every ` ```mermaid ` block (native plus the ones you just
-   authored) to images and rewrites each fence as an image reference. Add
-   `--renderer mmdc|ink`, `--format png|svg`, `--theme <name>`, `--background
-   <color>`, or `--out <dir>` only when the user asks. Copy the script alongside
-   the skill when it has been installed into a project's `.claude/skills/`.
+   authored) to PNG images and rewrites each fence as an image reference. Leave
+   the defaults alone: they produce `diagram-N.png` deterministically. Add
+   `--renderer mmdc|ink`, `--theme <name>`, `--background <color>`, or
+   `--out <dir>` only when the user explicitly asks; do not reach for `--format
+   svg`. Copy the script alongside the skill when it has been installed into a
+   project's `.claude/skills/`.
 6. **Report.** State how many blocks were converted (mermaid vs ASCII-derived),
    where the images were written, and that the Markdown now references them. If
    the user is inside a git repo, suggest reviewing the diff before committing.
+
+## Idempotency and determinism
+
+The conversion is designed to be repeatable and side-effect-free:
+
+- **Deterministic names.** Blocks become `diagram-1.png`, `diagram-2.png`, ... in
+  document order. A re-run overwrites the same files in place; it never creates a
+  `diagram-3.png` variant or a semantically named copy.
+- **Safe re-runs.** Once a fence is replaced by an image reference there is no
+  ` ```mermaid ` block left, so running the script again is a no-op ("No mermaid
+  blocks found"). It will not double-convert or duplicate images.
+- **No stray artifacts.** The only thing written under `<md-stem>-diagrams/` is
+  the `diagram-N.png` set. If you see `.svg`, `.mmd`, or `*-config.json` files
+  there, they did not come from this script and should not be created.
+- **One writer.** Only the script edits the Markdown and the image folder. If you
+  need to change a rendered diagram, edit its mermaid source (re-inserting the
+  ` ```mermaid ` block if it was already converted) and run the script again,
+  rather than editing the PNG or the reference by hand.
 
 ## Translating ASCII diagrams
 
@@ -93,7 +158,17 @@ script can do. Be conservative and get the user's sign-off before rewriting.
    order and direction, and any inline notes. Pick the fitting diagram type
    (`sequenceDiagram` for actor-to-actor message flows, `flowchart` for
    box-and-arrow). Keep labels faithful to the original wording.
-3. **Give the boxes breathing room.** Mermaid's defaults pack text tight against
+3. **Add descriptive alt text.** Put a `%% alt:` comment inside the block, one
+   sentence describing what the diagram shows. Mermaid ignores `%%` comments, so
+   it does not affect the render; the script reads it and uses it as the image's
+   alt text (falling back to `Diagram N` if you omit it). For example:
+
+   ```
+   sequenceDiagram
+     %% alt: A single protected call: the browser sends a session cookie to the Next.js server tier, which signs a DPoP proof and calls Spring Boot; the backend verifies the proof against cnf.jkt and returns the greeting.
+     ...
+   ```
+4. **Give the boxes breathing room.** Mermaid's defaults pack text tight against
    box borders, and long actor labels make some boxes far wider than others. Add
    an `init` directive that increases the internal margins and wraps long labels
    so boxes are padded and evenly sized. For a `sequenceDiagram`, a good starting
@@ -106,7 +181,7 @@ script can do. Be conservative and get the user's sign-off before rewriting.
    `wrap` plus a fixed `width` is the only way to add horizontal padding to actor
    boxes (mermaid otherwise sizes them tight to the label); raise `width` if a
    message label wraps when you did not want it to.
-4. **Preview before writing** with snippet mode, then look at the result:
+5. **Preview before writing** with snippet mode, then look at the result:
 
    ```bash
    python3 skills/mermaid-to-images/scripts/mermaid_to_images.py \
@@ -118,7 +193,7 @@ script can do. Be conservative and get the user's sign-off before rewriting.
 
    Read the produced image and compare it against the ASCII source. Fix the
    mermaid (and the padding) and re-preview until it matches and reads cleanly.
-5. **Confirm with the user**, especially when several blocks are borderline.
+6. **Confirm with the user**, especially when several blocks are borderline.
    Show which blocks you plan to convert and which you are leaving as text, then
    rewrite the agreed fences in the source (step 4 of the main steps) and run the
    script.
