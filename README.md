@@ -20,6 +20,7 @@ everywhere.
 
 | Agent | Description | Docs |
 | --- | --- | --- |
+| `interview-content-reviewer` | Read-only quality gate for interview-prep content.json (schema, house style, depth) before it is built. | [docs](docs/agents/interview-content-reviewer.md) |
 | `security-reviewer` | Read-only OAuth2/OIDC security audit for any web stack. | [docs](docs/agents/security-reviewer.md) |
 | `ui-design-reviewer` | Read-only UI review of a running app via the Playwright MCP, against Material-informed minimalism. | [docs](docs/agents/ui-design-reviewer.md) |
 
@@ -27,6 +28,7 @@ everywhere.
 
 | Skill | Description | Docs |
 | --- | --- | --- |
+| `interview-prep` | Turn a job description (URL or text) for a frontend, backend, or mobile software-engineering role into a tailored interview study pack at a chosen size (short, medium, large, or xl), output as two self-contained static HTML editions (a progress-tracking edition and a reading edition) and optionally published as private Claude artifacts. | [docs](docs/skills/interview-prep.md) |
 | `medium-article` | Turn an implemented PLAN.md into a Medium-style article (voice-matched draft, review gate), then stage it on Medium as a draft via the Playwright MCP. | [docs](docs/skills/medium-article.md) |
 | `mermaid-to-images` | Render a Markdown file's diagrams (mermaid blocks, plus ASCII art translated to mermaid) to image files and rewrite each block as an image reference. | [docs](docs/skills/mermaid-to-images.md) |
 | `spring-oauth2-resource-server` | Configure a Spring Boot app as an OAuth2/OIDC JWT resource server (any provider). | [docs](docs/skills/spring-oauth2-resource-server.md) |
