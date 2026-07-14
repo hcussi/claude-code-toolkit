@@ -27,6 +27,7 @@ everywhere.
 
 | Skill | Description | Docs |
 | --- | --- | --- |
+| `medium-article` | Turn an implemented PLAN.md into a Medium-style article (voice-matched draft, review gate), then stage it on Medium as a draft via the Playwright MCP. | [docs](docs/skills/medium-article.md) |
 | `mermaid-to-images` | Render a Markdown file's diagrams (mermaid blocks, plus ASCII art translated to mermaid) to image files and rewrite each block as an image reference. | [docs](docs/skills/mermaid-to-images.md) |
 | `spring-oauth2-resource-server` | Configure a Spring Boot app as an OAuth2/OIDC JWT resource server (any provider). | [docs](docs/skills/spring-oauth2-resource-server.md) |
 | `ui-iterate` | Human-in-the-loop UI redesign loop on a running app (Playwright MCP + ui-design-reviewer). | [docs](docs/skills/ui-iterate.md) |
